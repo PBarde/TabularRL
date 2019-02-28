@@ -31,7 +31,11 @@ class BoltzmannPolicy:
         return soft_max(values, self.T)
 
     def optimal(self, values):
-        return np.argmax(values)
+        m = np.max(values)
+        maxes = values == m
+        probas = maxes/np.sum(maxes)
+        action = np.random.choice(len(probas), size=1, p=probas)[0]
+        return action
 
 
 class EpsilonGreedyPolicy:
@@ -81,19 +85,28 @@ class TabularAlgo:
                         print(f'Segment: {seg}, Episode: {e}, Cumul Reward: {round(cumul_r, 4)}')
                 seg_train_rewards.append(cumul_r)
             # evaluating episode
-            obs = env.reset()
-            # env.render()
-            done = False
-            cumul_r = 0
-            while not done:
-                action = self.optimal_act(obs)
-                obs, r, done, info = env.step(action)
-                cumul_r += r
+            cumul_r = self.evaluate(env)
             seg_eval_rewards.append(cumul_r)
             if self.verbose:
                 print(f'Segment: {seg}, Testing Cumul Reward: {round(cumul_r, 4)}')
 
         return seg_eval_rewards, seg_train_rewards
+
+    def evaluate(self, env, greedy=True, verbose=False):
+        obs = env.reset()
+        if verbose:
+            print(obs)
+        # env.render()
+        done = False
+        cumul_r = 0
+        while not done:
+            if greedy:
+                action = self.optimal_act(obs)
+            else:
+                action = self.act(obs)
+            obs, r, done, info = env.step(action)
+            cumul_r += r
+        return cumul_r
 
 
 class TabularSarsa(TabularAlgo):
