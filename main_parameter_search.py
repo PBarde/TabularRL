@@ -6,11 +6,12 @@ import matplotlib.pyplot as plt
 if __name__ == '__main__':
     env = gym.make("Taxi-v2")
     policy_type = 'softmax'
-    algo_type = 'expected_sarsa'  # ['expected_sarsa', 'Qlearning', 'sarsa']
+    algo_type = 'Qlearning'  # ['expected_sarsa', 'Qlearning', 'sarsa']
     lr_list = [0.25, 0.5, 0.75]
     temperature_list = [1, 10, 100]
     eval_perfs = {}
     train_perfs = {}
+    re_eval  = False
     for temp in temperature_list:
         eval_perfs[temp] = {}
         train_perfs[temp] = {}
@@ -19,14 +20,17 @@ if __name__ == '__main__':
             for _ in range(10):
                 policy = BoltzmannPolicy(temperature=temp)
                 algo = get_algo(algo_type, policy, env.observation_space.n, env.action_space.n, lr=lr)
-                trash, train_cumul_r = algo.train(env, ep_per_seg=10)
+                eval_cumul_r, train_cumul_r = algo.train(env, ep_per_seg=10)
                 # train performance on last 10 episodes
                 run_train.append(np.mean(train_cumul_r[-10:]))
-                eval_cumul_r = []
-                for ee in range(10):
-                    cumul_r = algo.evaluate(env)
-                    eval_cumul_r.append(cumul_r)
-                run_eval.append(np.mean(eval_cumul_r))
+                if not re_eval:
+                    run_eval.append(eval_cumul_r[-1])
+                else:
+                    eval_cumul_r = []
+                    for ee in range(10):
+                        cumul_r = algo.evaluate(env)
+                        eval_cumul_r.append(cumul_r)
+                    run_eval.append(np.mean (eval_cumul_r))
 
             eval_perfs[temp].update({lr: np.mean(run_eval)})
             train_perfs[temp].update({lr: np.mean(run_train)})
